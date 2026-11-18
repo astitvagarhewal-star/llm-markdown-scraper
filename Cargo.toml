@@ -1,0 +1,21 @@
+[package]
+name = "llm-markdown-scraper"
+version = "0.1.0"
+edition = "2021"
+description = "High-throughput Rust web scraper and clean Markdown extractor for LLM & RAG pipelines"
+license = "MIT"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli"] }
+scraper = "0.22"
+html2md = "0.2"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+url = "2"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

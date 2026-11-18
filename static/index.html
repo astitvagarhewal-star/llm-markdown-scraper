@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rust LLM Web Scraper & Markdown Playground</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-alt: #1e293b;
+      --border: #283548;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --success: #34d399;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 2rem 1rem; line-height: 1.5; }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem; }
+    h1 { font-size: 1.75rem; margin: 0 0 0.35rem 0; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); margin: 0; font-size: 0.95rem; }
+    .badge { background: rgba(56, 189, 248, 0.12); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .controls { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .input-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    input[type="url"] { flex: 1; min-width: 240px; padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.95rem; }
+    input[type="url"]:focus { outline: none; border-color: var(--accent); }
+    button.primary { padding: 0.85rem 1.5rem; border-radius: 8px; border: none; background: var(--accent); color: #090d16; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: background 0.15s; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.primary:disabled { opacity: 0.6; cursor: wait; }
+    .options-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.9rem; font-size: 0.85rem; color: var(--muted); }
+    .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .preset-btn { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text); padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 1.35rem; font-weight: 700; color: var(--accent); margin-top: 0.25rem; }
+    .output-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .output-header { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.25rem; border-bottom: 1px solid var(--border); background: rgba(15, 23, 42, 0.6); gap: 1rem; }
+    .meta-title { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions { display: flex; gap: 0.5rem; }
+    .secondary-btn { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; }
+    .secondary-btn:hover { border-color: var(--accent); }
+    pre { margin: 0; padding: 1.25rem; white-space: pre-wrap; word-break: break-word; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88rem; max-height: 500px; overflow-y: auto; color: #cbd5e1; }
+    .error-text { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Rust LLM Web Scraper & Markdown Extractor</h1>
+        <p class="subtitle">Zero-overhead Axum + Tokio pipeline that turns noisy webpages into clean RAG-ready Markdown.</p>
+      </div>
+      <span class="badge">Rust 2021 • Axum 0.8</span>
+    </header>
+
+    <div class="controls">
+      <div class="input-row">
+        <input id="urlInput" type="url" value="https://en.wikipedia.org/wiki/Rust_(programming_language)" placeholder="https://example.com/article" />
+        <button id="scrapeBtn" class="primary" onclick="runScrape()">Extract Markdown</button>
+      </div>
+      <div class="options-row">
+        <label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;">
+          <input id="stripNav" type="checkbox" checked />
+          Isolate primary content (<code>&lt;article&gt;</code> / <code>&lt;main&gt;</code>)
+        </label>
+        <div class="presets">
+          <span>Try:</span>
+          <button class="preset-btn" onclick="setUrl('https://en.wikipedia.org/wiki/Rust_(programming_language)')">Wikipedia (Rust)</button>
+          <button class="preset-btn" onclick="setUrl('https://doc.rust-lang.org/book/ch01-01-installation.html')">The Rust Book</button>
+          <button class="preset-btn" onclick="setUrl('https://example.com')">Example.com</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Estimated LLM Tokens</div>
+        <div class="stat-value" id="tokensVal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Word Count</div>
+        <div class="stat-value" id="wordsVal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Characters</div>
+        <div class="stat-value" id="charsVal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Rust Pipeline Latency</div>
+        <div class="stat-value" id="latencyVal">—</div>
+      </div>
+    </div>
+
+    <div class="output-panel">
+      <div class="output-header">
+        <div class="meta-title" id="docTitle">Markdown Preview</div>
+        <div class="actions">
+          <button class="secondary-btn" id="copyBtn" onclick="copyMarkdown()">Copy .md</button>
+          <button class="secondary-btn" onclick="downloadMarkdown()">Download .md</button>
+        </div>
+      </div>
+      <pre id="outputPre">Click "Extract Markdown" to fetch, parse, and convert a live webpage via POST /api/scrape.</pre>
+    </div>
+  </div>
+
+  <script>
+    let latestMarkdown = '';
+    let latestTitle = 'extracted';
+
+    function setUrl(u) {
+      document.getElementById('urlInput').value = u;
+      runScrape();
+    }
+
+    async function runScrape() {
+      const btn = document.getElementById('scrapeBtn');
+      const url = document.getElementById('urlInput').value.trim();
+      const stripNav = document.getElementById('stripNav').checked;
+      const pre = document.getElementById('outputPre');
+
+      if (!url) return;
+      btn.disabled = true;
+      btn.textContent = 'Extracting...';
+      pre.classList.remove('error-text');
+      pre.textContent = 'Fetching and parsing HTML in Rust...';
+
+      try {
+        const res = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, strip_nav: stripNav })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Scrape request failed');
+
+        latestMarkdown = data.markdown;
+        latestTitle = data.title || 'extracted';
+
+        document.getElementById('tokensVal').textContent = data.estimated_tokens.toLocaleString();
+        document.getElementById('wordsVal').textContent = data.word_count.toLocaleString();
+        document.getElementById('charsVal').textContent = data.char_count.toLocaleString();
+        document.getElementById('latencyVal').textContent = data.latency_ms + ' ms';
+        document.getElementById('docTitle').textContent = data.title;
+        pre.textContent = data.markdown || '(No text content extracted)';
+      } catch (err) {
+        pre.classList.add('error-text');
+        pre.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Extract Markdown';
+      }
+    }
+
+    async function copyMarkdown() {
+      if (!latestMarkdown) return;
+      await navigator.clipboard.writeText(latestMarkdown);
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy .md', 1500);
+    }
+
+    function downloadMarkdown() {
+      if (!latestMarkdown) return;
+      const slug = latestTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'page';
+      const blob = new Blob([latestMarkdown], { type: 'text/markdown;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = slug + '.md';
+      a.click();
+    }
+  </script>
+</body>
+</html>

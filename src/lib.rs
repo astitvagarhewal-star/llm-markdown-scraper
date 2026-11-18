@@ -77,7 +77,12 @@ pub fn validate_target_url(raw: &str) -> Result<Url, String> {
 
     match parsed.scheme() {
         "http" | "https" => {}
-        other => return Err(format!("Unsupported URL scheme '{}'. Use http or https.", other)),
+        other => {
+            return Err(format!(
+                "Unsupported URL scheme '{}'. Use http or https.",
+                other
+            ))
+        }
     }
 
     let host = parsed
@@ -126,7 +131,8 @@ pub fn extract_clean_markdown(raw_html: &str, strip_nav: bool) -> (String, Optio
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| "Untitled Document".into());
 
-    let desc_sel = Selector::parse("meta[name='description'], meta[property='og:description']").unwrap();
+    let desc_sel =
+        Selector::parse("meta[name='description'], meta[property='og:description']").unwrap();
     let description = document
         .select(&desc_sel)
         .next()
@@ -135,7 +141,14 @@ pub fn extract_clean_markdown(raw_html: &str, strip_nav: bool) -> (String, Optio
         .filter(|c| !c.is_empty());
 
     let target_html = if strip_nav {
-        let priority_selectors = ["article", "main", "[role='main']", ".content", "#content", "body"];
+        let priority_selectors = [
+            "article",
+            "main",
+            "[role='main']",
+            ".content",
+            "#content",
+            "body",
+        ];
         priority_selectors
             .iter()
             .find_map(|sel_str| {
@@ -170,8 +183,14 @@ pub fn extract_clean_markdown(raw_html: &str, strip_nav: bool) -> (String, Optio
         cleaned_lines.pop();
     }
 
-    (title, description, cleaned_lines.join("
-"))
+    (
+        title,
+        description,
+        cleaned_lines.join(
+            "
+",
+        ),
+    )
 }
 
 async fn scrape_handler(
@@ -180,12 +199,8 @@ async fn scrape_handler(
 ) -> Result<Json<ScrapeResponse>, (StatusCode, Json<ErrorResponse>)> {
     let start = Instant::now();
 
-    let parsed_url = validate_target_url(&payload.url).map_err(|msg| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error: msg }),
-        )
-    })?;
+    let parsed_url = validate_target_url(&payload.url)
+        .map_err(|msg| (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: msg })))?;
 
     let response = state
         .client
@@ -295,7 +310,12 @@ mod tests {
         let app = build_router(state);
 
         let response = app
-            .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
